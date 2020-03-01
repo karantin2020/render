@@ -32,7 +32,7 @@ func Status(r *http.Request, status int) {
 	*r = *r.WithContext(context.WithValue(r.Context(), StatusCtxKey, status))
 }
 
-// Respond handles streaming JSON and XML responses, automatically setting the
+// DefaultResponder handles streaming JSON and XML responses, automatically setting the
 // Content-Type based on request headers. It will default to a JSON response.
 func DefaultResponder(w http.ResponseWriter, r *http.Request, v interface{}) {
 	if v != nil {
@@ -59,9 +59,14 @@ func DefaultResponder(w http.ResponseWriter, r *http.Request, v interface{}) {
 	}
 }
 
+func setNosniff(w http.ResponseWriter) {
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+}
+
 // PlainText writes a string to the response, setting the Content-Type as
 // text/plain.
 func PlainText(w http.ResponseWriter, r *http.Request, v string) {
+	setNosniff(w)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	if status, ok := r.Context().Value(StatusCtxKey).(int); ok {
 		w.WriteHeader(status)
@@ -72,6 +77,7 @@ func PlainText(w http.ResponseWriter, r *http.Request, v string) {
 // Data writes raw bytes to the response, setting the Content-Type as
 // application/octet-stream.
 func Data(w http.ResponseWriter, r *http.Request, v []byte) {
+	setNosniff(w)
 	w.Header().Set("Content-Type", "application/octet-stream")
 	if status, ok := r.Context().Value(StatusCtxKey).(int); ok {
 		w.WriteHeader(status)
@@ -81,6 +87,7 @@ func Data(w http.ResponseWriter, r *http.Request, v []byte) {
 
 // HTML writes a string to the response, setting the Content-Type as text/html.
 func HTML(w http.ResponseWriter, r *http.Request, v string) {
+	setNosniff(w)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if status, ok := r.Context().Value(StatusCtxKey).(int); ok {
 		w.WriteHeader(status)
@@ -98,7 +105,7 @@ func JSON(w http.ResponseWriter, r *http.Request, v interface{}) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	setNosniff(w)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if status, ok := r.Context().Value(StatusCtxKey).(int); ok {
 		w.WriteHeader(status)
@@ -115,7 +122,7 @@ func XML(w http.ResponseWriter, r *http.Request, v interface{}) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	setNosniff(w)
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	if status, ok := r.Context().Value(StatusCtxKey).(int); ok {
 		w.WriteHeader(status)
